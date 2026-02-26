@@ -1,6 +1,4 @@
-# MSCS-533
-
-# Final Software Development Project: Build Multiplatform “Location Tracker" App with .NET MAU
+# MSCS-533: Final Software Development Project: Build Multiplatform “Location Tracker" App with .NET MAU
 
 # Demo GIF
 
