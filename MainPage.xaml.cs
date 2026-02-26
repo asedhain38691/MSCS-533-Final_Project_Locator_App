@@ -11,13 +11,12 @@ public partial class MainPage : ContentPage
     private readonly LocationDb _db;
 
     private CancellationTokenSource? _cts;
-
-    // Movement gating
+   
     private bool _movementStarted = false;
     private Location? _baseline;
-    private const double MovementThresholdMeters = 30; // tweak: 20–50m
+    private const double MovementThresholdMeters = 30;
 
-    // Heat styling
+    // Styling the movement renders. Each point will be shown with dark blue blob on the map
     private static readonly Color HeatBlue = Color.FromRgba(0, 0, 255, 0.8);
     private const double HeatRadiusMeters = 40;
 
@@ -32,7 +31,7 @@ public partial class MainPage : ContentPage
     {
         base.OnAppearing();
 
-        // Avoid multiple loops if the page re-appears
+        // Avoids multiple loops if the page re-appears
         if (_cts != null) return;
 
         try
@@ -40,13 +39,14 @@ public partial class MainPage : ContentPage
             var permission = await Permissions.RequestAsync<Permissions.LocationWhenInUse>();
             if (permission != PermissionStatus.Granted)
             {
+				//If the user declines the location permission
                 StatusLabel.Text = "Location permission not granted.";
                 return;
             }
 
             await _db.InitAsync();
 
-            // Reset movement state each time we start
+            // Resets movement state each time the app starts
             _movementStarted = false;
             _baseline = null;
 
@@ -88,7 +88,7 @@ public partial class MainPage : ContentPage
 
                 var current = new Location(loc.Latitude, loc.Longitude);
 
-                // Establish baseline on first fix
+                // Establishes baseline state
                 if (_baseline == null)
                 {
                     _baseline = current;
@@ -97,7 +97,7 @@ public partial class MainPage : ContentPage
                     continue;
                 }
 
-                // Gate until movement begins
+                // Waits until some movement is done
                 if (!_movementStarted)
                 {
                     var movedKm = Location.CalculateDistance(_baseline, current, DistanceUnits.Kilometers);
@@ -110,7 +110,7 @@ public partial class MainPage : ContentPage
                         continue;
                     }
 
-                    // Movement started: clear DB + clear map + start fresh (Option B)
+                    // Movement started: cleared DB with clean map and start fresh
                     _movementStarted = true;
 
                     await _db.ClearAllAsync();
@@ -122,7 +122,7 @@ public partial class MainPage : ContentPage
                     });
                 }
 
-                // Save point
+                // Saving to database
                 await _db.InsertAsync(new LocationPoint
                 {
                     Latitude = loc.Latitude,
@@ -130,20 +130,20 @@ public partial class MainPage : ContentPage
                     TimestampUtc = DateTime.UtcNow
                 });
 
-                // Keep map centered roughly on current location
+        
                 await MainThread.InvokeOnMainThreadAsync(() =>
                 {
                     StatusLabel.Text = $"Saved: {loc.Latitude:F6}, {loc.Longitude:F6}";
                     MapView.MoveToRegion(MapSpan.FromCenterAndRadius(current, Distance.FromKilometers(0.5)));
                 });
 
-                // Render heatmap
+                // Rendering heatmap
                 await RenderHeatmapAsync();
             }
         }
         catch (OperationCanceledException)
         {
-            // expected when page disappears
+          
         }
         catch (Exception ex)
         {
@@ -161,7 +161,7 @@ public partial class MainPage : ContentPage
         {
             MapView.MapElements.Clear();
 
-            // Center on last point
+            // Centering the map on the last point
             var last = points[^1];
             MapView.MoveToRegion(MapSpan.FromCenterAndRadius(
                 new Location(last.Latitude, last.Longitude),
